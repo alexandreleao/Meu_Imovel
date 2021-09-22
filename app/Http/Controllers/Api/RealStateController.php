@@ -27,10 +27,10 @@ class RealStateController extends Controller
     {
         try {
 
-            $realState = $this->realState->findOrFail($id); 
+            $data = $this->realState->findOrFail($id); 
             
             return response()->json([
-                'data' => $realState
+                'data' => $data
             ], 200);
 
             } catch (\Exception $e) {
@@ -61,7 +61,7 @@ class RealStateController extends Controller
 
 
         return response()->json($request->all(), 200);
-         }
+    }
 
          
 
