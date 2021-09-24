@@ -6,6 +6,7 @@ use App\Api\ApiMessages;
 use App\User;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
@@ -30,7 +31,7 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        $user = $request->all();
+        $data = $request->all();
 
         if(!$request->has('password')|| !$request->get('password')){
             
@@ -38,10 +39,21 @@ class UserController extends Controller
             return response()->json($message->getMessage(), 401);
         }
 
-        try {
-            $user['password'] = bcrypt($user['password']);
+        Validator::make($data, [
+            'phone' => 'required',
+            'moblie_phone' => 'required'
+        ])->validate();
 
-            $user = $this->user->create($user); //Mass Asignment
+        try {
+            $data['password'] = bcrypt($data['password']);
+
+            $user = $this->user->create($data); 
+            $user->profile()->create(
+                [
+                    'phone' => $data['phone'],
+                    'mobile_phone' => $data['mobile_phone']
+                ]
+            );
 
             return response()->json([
                 'data' =>[
@@ -69,8 +81,9 @@ class UserController extends Controller
     {
         try {
 
-            $user = $this->user->findOrFail($id); 
-            
+            $user = $this->user->with('profile')->findOrFail($id); 
+            $user->profile->social_networks = unserialize($user->profile->social_networks);
+
             return response()->json([
                 'data' => $user
             ], 200);
@@ -91,6 +104,7 @@ class UserController extends Controller
     public function update(Request $request, $id)
     {
         $data = $request->all();
+       
 
         if($request->has('password') && $request->get('password')){
            $data['password'] = bcrypt($data['password']); 
@@ -99,10 +113,20 @@ class UserController extends Controller
             unset($data['password']);
         }
 
+        Validator::make($data, [
+            'profile.phone' => 'required',
+            'profile.moblie_phone' => 'required'
+        ])->validate();
+
              try {
+            $profile = $data['profile'];
+            $profile['social_networks'] = serialize($profile['social_networks']);
 
             $user = $this->user->findOrFail($id); 
             $user->update($data);
+                
+            $user->profile()->update($profile);
+
             return response()->json([
                 'data' =>[
                     'msg' => 'Usuário atualizado com sucesso!'
